@@ -71,7 +71,10 @@
     } else {
       var constraints = {
         video: true,
-        audio: true
+        audio: {
+          echoCancellation: true,//回音消除
+          noiseSuppression: true,//降噪
+        }
       }
       navigator.mediaDevices.getUserMedia(constraints)
         .then(gotMediaStream)

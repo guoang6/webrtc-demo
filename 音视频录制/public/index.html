@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>音视频录制</title>
+</head>
+
+<body>
+	<div>
+		<table>
+			<tr>
+				<td><video autoplay playsinline id="player"></video></td>
+				<td><video playsinline id="recplayer"></video></td>
+			</tr>
+			<tr>
+				<td><button id="record">开始录制</button></td>
+				<td><button id="recplay" disabled>播放</button></td>
+				<td><button id="download" disabled>下载</button></td>
+			</tr>
+		</table>
+	</div>
+	<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+	<script>
+		'use strict'
+		var videoplay = document.getElementById('player');
+		var btnRecord = document.getElementById('record');
+		var btnPlay = document.getElementById('recplay');
+		var btnDownload = document.getElementById('download');
+		var recvideo = document.getElementById('recplayer');
+		var Stream;//音视频流
+		var buffer;//存音视频数据
+		var mediaRecorder;
+		//音视频数据
+		function gotMediaStream(stream) {
+			window.Stream = stream
+			videoplay.srcObject = stream;//将获取到的流赋给video标签
+		}
+		function handleError(err) {
+			console.log(err.name + " : " + err.message);
+		}
+		if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+			console.log("你的浏览器不支持getUserMedia")
+		} else {
+			var constraints = {
+				video: true,
+				audio : {
+				echoCancellation:true,//回音消除
+				noiseSuppression:true,//降噪
+			} 
+			}
+			navigator.mediaDevices.getUserMedia(constraints)
+				.then(gotMediaStream)
+				.catch(handleError);
+		}
+		//存音视频数据
+		function handleDataAvailable(e) {
+			if (e && e.data && e.data.size > 0) {
+				buffer.push(e.data);//将数据存到buffer中
+			}
+		}
+		//开始录制
+		function startRecord() {
+			buffer = [];
+			var options = {
+				mimeType: 'video/webm;codecs=vp8'
+			}
+			if (!MediaRecorder.isTypeSupported(options.mimeType)) {//判断options穿的值当前浏览器是否支持
+				console.error(`不支持${options.mimeType} `);
+				return;
+			}
+			try {
+				mediaRecorder = new MediaRecorder(Stream, options);//创建一个MediaRecorder
+			} catch (e) {
+				console.error(e);
+				return;
+			}
+			mediaRecorder.ondataavailable = handleDataAvailable;//处理数据存储数据
+			mediaRecorder.start(10);//设置时间片为十
+
+		}
+		//停止录制
+		function stopRecord() {
+			mediaRecorder.stop();
+		}
+		//录制按钮点击事件
+		btnRecord.onclick = () => {
+			if (btnRecord.textContent === '开始录制') {
+				startRecord();
+				btnRecord.textContent = '停止录制';
+				btnPlay.disabled = true;
+				btnDownload.disabled = true;
+			} else {
+
+				stopRecord();
+				btnRecord.textContent = '开始录制';
+				btnPlay.disabled = false;
+				btnDownload.disabled = false;
+
+			}
+		}
+		//播放
+		btnPlay.onclick = () => {
+			var blob = new Blob(buffer, { type: 'video/webm' });
+			//创建url 使用video.play()播放视频
+			recvideo.src = window.URL.createObjectURL(blob);
+			recvideo.srcObject = null;
+			recvideo.controls = true;
+			recvideo.play();
+		}
+
+		//下载
+		btnDownload.onclick = () => {
+			var blob = new Blob(buffer, { type: 'video/webm' });
+			var url = window.URL.createObjectURL(blob);//创建url
+			//创建a标签 并隐藏 使用a.click()下载文件
+			var a = document.createElement('a');
+			a.href = url;
+			a.style.display = 'none';
+			a.download = '视频录制.webm';
+			a.click();
+		}
+	</script>
+
+</body>
+
+</html>
