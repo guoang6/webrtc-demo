@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>采集本地音视频流</title>
+</head>
+
+<body>
+  <div>
+    <div>
+      <label>audio input device:</label>
+      <select id="audioSource"></select>
+    </div>
+    <div>
+      <label>audio output device:</label>
+      <select id="audioOutput"></select>
+    </div>
+    <div>
+      <label>video input device:</label>
+      <select id="videoSource"></select>
+    </div>
+    <div>
+      <video autoplay playsinline id="player"></video>
+    </div>
+    <div>
+      <button id="snapshot">拍照</button>
+    </div>
+    <div>
+      <canvas id="picture"></canvas>
+    </div>
+  </div>
+  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+  <script>
+    'use strict'
+    var videoplay = document.getElementById('player');
+    //获取button 和canvas
+    var snapshot = document.getElementById('snapshot');
+    var picture = document.getElementById('picture');
+    //设备信息
+    function gotDevices(deviceInfos) {
+      deviceInfos.forEach(function (deviceInfo) {
+        console.log(deviceInfo.kind + ": label"
+          + deviceInfo.label + ":id= "
+          + deviceInfo.deviceId + ":  groupId = "
+          + deviceInfo.groupId
+        );
+        // 判断类型进行写入对应的选择框里面
+        var option = document.createElement("option");
+        option.text = deviceInfo.label;
+        option.value = deviceInfo.deviceId;
+        if (deviceInfo.kind === "audiosource") {
+          audioSource.appendChild(option);
+        } else if (deviceInfo.kind === "audiooutput") {
+          audioOutput.appendChild(option);
+        } else if (deviceInfo.kind === "videosource") {
+          videoSource.appendChild(option);
+        }
+      });
+    }
+    //音视频数据
+    function gotMediaStream(stream) {
+      videoplay.srcObject = stream;//将获取到的流赋给video标签
+      return navigator.mediaDevices.enumerateDevices()
+    }
+    function handleError(err) {
+      console.log(err.name + " : " + err.message);
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.log("你的浏览器不支持getUserMedia")
+    } else {
+      var constraints = {
+        video: true,
+        audio: true
+      }
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(gotMediaStream)
+        .then(gotDevices)
+        .catch(handleError);
+    }
+
+    picture.width = 320
+    picture.heigth = 320
+    snapshot.onclick = function () {
+      picture.getContext('2d').drawImage(videoplay, 0, 0, picture.heigth, picture.heigth);//将videoplay当作源使用drawImage截取一帧数据就实现拍照功能。
+    }
+  </script>
+
+</body>
+
+</html>
